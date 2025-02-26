@@ -7,9 +7,6 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 from urllib.parse import urlparse
 import asyncio
-from pprint import pp
-
-from chromadb.errors import InvalidArgumentError
 
 from ai_models import embedding_function
 
@@ -39,7 +36,7 @@ def get_pages(base_url, current_url, found_pages={}) -> Dict[str, BeautifulSoup]
     if current_url in found_pages:
         should_return = True
         logger.info(f"Already processed {current_url}")
-    if len(found_pages) >= 30:  # env.process_pages_limit:
+    if len(found_pages) > env.process_pages_limit:
         should_return = True
         logger.info(f"Reached limit of {env.process_pages_limit}")
     if not current_url.startswith(base_url) and not current_url.startswith("/"):
@@ -47,19 +44,17 @@ def get_pages(base_url, current_url, found_pages={}) -> Dict[str, BeautifulSoup]
         logger.info(f"Outside of domain {current_url}")
     if current_url.endswith(".pdf"):
         should_return = True
-    # if current_url not in only:
-    #     should_return = True
 
     if should_return:
         return found_pages
-    # ):
+
     logger.info(f"Processing {current_url}")
     page = requests.get(current_url)
     soup = BeautifulSoup(page.content, "html.parser")
     found_pages[current_url] = soup
     links = soup.find_all("a")
     logger.info(f"Found {len(links)} links")
-    # logger.debug(f"Links: {list(map( lambda link: link.get('href', '/'), links))}")
+    logger.debug(f"Links: {list(map( lambda link: link.get('href', '/'), links))}")
     for a in links:
         found_link = a.get("href", "/")
         found_link = re.sub(r"\.+\/", "/", found_link)
@@ -86,14 +81,6 @@ def get_docuemnts(
             for match in matches:
                 page_elements.append(match.get_text())
         page_content = re.sub(r"\n\n*", "\n", "".join(page_elements))
-        # page_articles = page.find_all("article")
-        # logger.info(f"Found {len(page_articles)} articles")
-        # for article in page_articles:
-        #     breadcrumbs = article.find("div", {"class": "nextra-breadcrumb"})
-        #     if breadcrumbs:
-        #         breadcrumbs.extract()
-        #     page_content = article.text.replace("\n\n", "\n")
-        #     logger.info(f"Content length: {len(page_content)}")
         document_id = url.replace(base_url, "")
         if not document_id or document_id == "":
             document_id = "root"
@@ -132,11 +119,8 @@ async def prepare_documents(documents: Dict[str, Document]):
                 )
 
             for_embed += splitted
+            # summarise only if there are more than one chunk and less than 10 to save resources
             if len(splitted) > 1 and len(splitted) < 10:
-                # logger.info("Sleeping for 20 seconds")
-                # await asyncio.sleep(20)
-                # logger.info("Slept for 20 seconds")
-
                 logger.info(f"Summarizing {url}")
                 summary = (await graph.ainvoke({"chunks": list(splitted)}))["summary"]
                 summary.metadata.update(
@@ -188,11 +172,9 @@ def embed_documents(base_url: str, for_embed: List[Document]):
 
 
 async def query(input: IngestWebsite) -> Response:
-    # input.base_url = "https://alkem.io/documentation/getting-started/create-account"
     logger.info(f"Handler invoked for base URL: {input.base_url}")
     pages = get_pages(input.base_url, input.base_url, {})
     logger.info(f"Pages found: {len(pages)}")
-    # pp(list(pages.keys()))
     documents = get_docuemnts(input.base_url, pages)
     logger.info(f"Documents found: {len(documents)}")
     prepared_documents = await prepare_documents(documents)
