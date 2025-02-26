@@ -186,7 +186,7 @@ frozenlist = ">=1.1.0"
 
 [[package]]
 name = "alkemio-virtual-contributor-engine"
-version = "0.0.3"
+version = "0.0.4"
 description = "Alkemio's generic Virtual Contributor engine"
 optional = false
 python-versions = "^3.11"
@@ -202,8 +202,10 @@ chromadb-client = "^0.6.3"
 load-dotenv = "^0.1.0"
 
 [package.source]
-type = "directory"
-url = "../alkemio-virtual-contributor-engine"
+type = "git"
+url = "https://git@github.com/alkem-io/virtual-contributor-engine.git"
+reference = "v0.0.4"
+resolved_reference = "d93c48684c252afdffc5b1feaedb7edc75a7424b"
 
 [[package]]
 name = "annotated-types"
@@ -2966,4 +2968,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "d68e323a0901d829a523733fe9934b81761fa538333733e541370548cb2e83ca"
+content-hash = "dd2cfd6886e77f02cfd4bc993ed73c978bb2cd08ca9fa2f6bece83d1e02b02f8"
