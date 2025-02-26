@@ -1,0 +1,18 @@
+from enum import Enum
+
+
+# copy the whole type from the main ingest service
+class DocumentType(Enum):
+    KNOWLEDGE = "KNOWLEDGE"
+    SPACE = "SPACE"
+    SUBSPACE = "SUBSPACE"
+    CALLOUT = "CALLOUT"
+    PDF_FILE = "PDF_FILE"
+    SPREADSHEET = "SPREADSHEET"
+    DOCUMENT = "DOCUMENT"
+    LINK_COLLECTION = "LINK_COLLECTION"
+    POST = "POST"
+    POST_COLLECTION = "POST_COLLECTION"
+    WHITEBOARD = "WHITEBOARD"
+    WHITEBOARD_COLLECTION = "WHITEBOARD_COLLECTION"
+    WEBPAGE = "WEBPAGE"
