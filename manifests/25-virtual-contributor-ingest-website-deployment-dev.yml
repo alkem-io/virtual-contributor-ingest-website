@@ -1,24 +1,24 @@
-jind: Deployment
+kind: Deployment
 apiVersion: apps/v1
 metadata:
   namespace: default
-  name: alkemio-virtual-contributor-engine-expert-deployment
+  name: alkemio-virtual-contributor-ingest-website-deployment
   labels:
-    app: alkemio-virtual-contributor-engine-expert
+    app: alkemio-virtual-contributor-ingest-website
 
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: alkemio-virtual-contributor-engine-expert
+      app: alkemio-virtual-contributor-ingest-website
   template:
     metadata:
       labels:
-        app: alkemio-virtual-contributor-engine-expert
+        app: alkemio-virtual-contributor-ingest-website
     spec:
       containers:
-        - name: alkemio-virtual-contributor-engine-expert
-          image: alkemio.azurecr.io/alkemio-virtual-contributor-engine-expert:latest
+        - name: alkemio-virtual-contributor-ingest-website
+          image: alkemio.azurecr.io/alkemio-virtual-contributor-ingest-website:latest
           env:
             - name: RABBITMQ_HOST
               valueFrom:
@@ -41,7 +41,7 @@ spec:
                   name: alkemio-rabbitmq-cluster-default-user
                   key: password
             - name: RABBITMQ_QUEUE
-              value: virtual-contributor-engine-expert
+              value: virtual-contributor-ingest-website
 
           envFrom:
             - secretRef:
@@ -51,12 +51,12 @@ spec:
           volumeMounts:
             - name: dshm
               mountPath: /dev/shm
-            - name: virtual-contributor-engine-expert-persistent-storage
+            - name: virtual-contributor-ingest-website-persistent-storage
               mountPath: /app/data
       volumes:
         - name: dshm
           emptyDir:
             medium: Memory
-        - name: virtual-contributor-engine-expert-persistent-storage
+        - name: virtual-contributor-ingest-website-persistent-storage
           persistentVolumeClaim:
-            claimName: virtual-contributor-engine-expert-pv-claim
+            claimName: virtual-contributor-ingest-website-pv-claim

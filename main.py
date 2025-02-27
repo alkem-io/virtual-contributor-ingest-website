@@ -49,8 +49,14 @@ def get_pages(base_url, current_url, found_pages={}) -> Dict[str, BeautifulSoup]
         return found_pages
 
     logger.info(f"Processing {current_url}")
-    page = requests.get(current_url)
-    soup = BeautifulSoup(page.content, "html.parser")
+    try:
+        page = requests.get(current_url)
+        page.raise_for_status()
+        soup = BeautifulSoup(page.content, "html.parser")
+    except (requests.RequestException, requests.Timeout) as e:
+        logger.error(e)
+        logger.error(f"Failed to fetch {current_url}")
+        return found_pages
     found_pages[current_url] = soup
     links = soup.find_all("a")
     logger.info(f"Found {len(links)} links")
