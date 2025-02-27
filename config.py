@@ -10,7 +10,7 @@ load_dotenv()
 class Env:
     local_path: str
     log_level: str
-    vebose: bool
+    verbose: bool
     chunk_size: int
     openai_endpoint: str
     openai_key: str
@@ -32,14 +32,6 @@ class Env:
         self.mistral_endpoint = os.getenv("AZURE_MISTRAL_ENDPOINT", "")
         self.mistral_key = os.getenv("AZURE_MISTRAL_API_KEY", "")
         self.process_pages_limit = int(os.getenv("PROCESS_PAGES_LIMIT", "20"))
-
-        self.rabbitmq_host = os.getenv("RABBITMQ_HOST", "")
-        self.rabbitmq_user = os.getenv("RABBITMQ_USER", "")
-        self.rabbitmq_password = os.getenv("RABBITMQ_PASSWORD", "")
-        self.rabbitmq_input_queue = os.getenv("RABBITMQ_QUEUE", "")
-        self.rabbitmq_result_queue = os.getenv("RABBITMQ_RESULT_QUEUE", "")
-        self.rabbitmq_exchange = os.getenv("RABBITMQ_EVENT_BUS_EXCHANGE", "")
-        self.rabbitmq_result_routing_key = os.getenv("RABBITMQ_RESULT_ROUTING_KEY", "")
 
 
 env = Env()

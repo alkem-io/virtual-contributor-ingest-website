@@ -119,18 +119,24 @@ async def prepare_documents(documents: Dict[str, Document]):
                 )
 
             for_embed += splitted
-            # summarise only if there are more than one chunk and less than 10 to save resources
-            if len(splitted) > 1 and len(splitted) < 10:
-                logger.info(f"Summarizing {url}")
-                summary = (await graph.ainvoke({"chunks": list(splitted)}))["summary"]
-                summary.metadata.update(
-                    {
-                        "documentId": f"{document.metadata['documentId']}-summary",
-                        "embeddingType": "summary",
-                    }
-                )
-                logger.info(f"Summary length: {len(summary.page_content)}")
-                for_embed += [summary]
+            try:
+                # summarise only if there are more than one chunk and less than 10 to save resources
+                if len(splitted) > 1 and len(splitted) < 10:
+                    logger.info(f"Summarizing {url}")
+                    summary = (await graph.ainvoke({"chunks": list(splitted)}))[
+                        "summary"
+                    ]
+                    summary.metadata.update(
+                        {
+                            "documentId": f"{document.metadata['documentId']}-summary",
+                            "embeddingType": "summary",
+                        }
+                    )
+                    logger.info(f"Summary length: {len(summary.page_content)}")
+                    for_embed += [summary]
+            except Exception as e:
+                logger.error(e)
+                logger.error(f"Failed to summarize {url}")
         else:
             for_embed += [document]
     return for_embed
