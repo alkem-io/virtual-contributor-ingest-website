@@ -1,0 +1,13 @@
+.openai.env
+.env
+openai.env
+azure.env
+/__pycache__/*
+/vectordb/*
+local.env
+docker-compose-local.yaml
+.DS_Store
+*.log
+repos
+repos/*
+
