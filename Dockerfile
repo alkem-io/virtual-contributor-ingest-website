@@ -17,5 +17,5 @@ COPY . /app
 # Use Poetry to install dependencies
 RUN poetry config virtualenvs.create true && poetry install --no-interaction --no-ansi
 
-# Run guidance_engine.py when the container launches
+# Run main.py when the container launches
 CMD ["poetry", "run", "python", "main.py"]
