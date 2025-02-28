@@ -41,22 +41,25 @@ spec:
                   name: alkemio-rabbitmq-cluster-default-user
                   key: password
             - name: RABBITMQ_QUEUE
-              value: virtual-contributor-ingest-website
+              valueFrom:
+                configMapKeyRef:
+                  name: alkemio-config
+                  key: RABBITMQ_INGEST_WEBSITE_QUEUE
+
+            - name: RABBITMQ_RESULT_QUEUE
+              valueFrom:
+                configMapKeyRef:
+                  name: alkemio-config
+                  key: RABBITMQ_INGEST_WEBSITE_RESULT_QUEUE
+
+            - name: RABBITMQ_RESULT_ROUTING_KEY
+              valueFrom:
+                configMapKeyRef:
+                  name: alkemio-config
+                  key: RABBITMQ_INGEST_WEBSITE_RESULT_ROUTING_KEY
 
           envFrom:
             - secretRef:
                 name: alkemio-secrets
             - configMapRef:
                 name: alkemio-config
-          volumeMounts:
-            - name: dshm
-              mountPath: /dev/shm
-            - name: virtual-contributor-ingest-website-persistent-storage
-              mountPath: /app/data
-      volumes:
-        - name: dshm
-          emptyDir:
-            medium: Memory
-        - name: virtual-contributor-ingest-website-persistent-storage
-          persistentVolumeClaim:
-            claimName: virtual-contributor-ingest-website-pv-claim
