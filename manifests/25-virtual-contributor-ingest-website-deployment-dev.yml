@@ -53,10 +53,3 @@ spec:
               mountPath: /dev/shm
             - name: virtual-contributor-ingest-website-persistent-storage
               mountPath: /app/data
-      volumes:
-        - name: dshm
-          emptyDir:
-            medium: Memory
-        - name: virtual-contributor-ingest-website-persistent-storage
-          persistentVolumeClaim:
-            claimName: virtual-contributor-ingest-website-pv-claim
