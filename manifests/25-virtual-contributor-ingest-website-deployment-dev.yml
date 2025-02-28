@@ -1,0 +1,65 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  namespace: default
+  name: alkemio-virtual-contributor-ingest-website-deployment
+  labels:
+    app: alkemio-virtual-contributor-ingest-website
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alkemio-virtual-contributor-ingest-website
+  template:
+    metadata:
+      labels:
+        app: alkemio-virtual-contributor-ingest-website
+    spec:
+      containers:
+        - name: alkemio-virtual-contributor-ingest-website
+          image: alkemio.azurecr.io/alkemio-virtual-contributor-ingest-website:latest
+          env:
+            - name: RABBITMQ_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: alkemio-rabbitmq-cluster-default-user
+                  key: host
+            - name: RABBITMQ_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: alkemio-rabbitmq-cluster-default-user
+                  key: port
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: alkemio-rabbitmq-cluster-default-user
+                  key: username
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: alkemio-rabbitmq-cluster-default-user
+                  key: password
+            - name: RABBITMQ_QUEUE
+              valueFrom:
+                configMapKeyRef:
+                  name: alkemio-config
+                  key: RABBITMQ_INGEST_WEBSITE_QUEUE
+
+            - name: RABBITMQ_RESULT_QUEUE
+              valueFrom:
+                configMapKeyRef:
+                  name: alkemio-config
+                  key: RABBITMQ_INGEST_WEBSITE_RESULT_QUEUE
+
+            - name: RABBITMQ_RESULT_ROUTING_KEY
+              valueFrom:
+                configMapKeyRef:
+                  name: alkemio-config
+                  key: RABBITMQ_INGEST_WEBSITE_RESULT_ROUTING_KEY
+
+          envFrom:
+            - secretRef:
+                name: alkemio-secrets
+            - configMapRef:
+                name: alkemio-config

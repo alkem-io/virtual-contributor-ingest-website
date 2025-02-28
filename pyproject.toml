@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "virtual-contributor-ingest-website"
+version = "0.1.0"
+description = ""
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.11"
+requests = "^2.32.3"
+bs4 = "^0.0.2"
+pandas = "^2.2.3"
+langgraph = "0.2.74"
+azure-ai-inference = "^1.0.0b7"
+langchain = "^0.3.17"
+load-dotenv = "^0.1.0"
+bcrypt = "^4.2.1"
+langchain-openai = "^0.3.3"
+openai = "^1.61.0"
+asyncio = "^3.4.3"
+alkemio-virtual-contributor-engine = {git = "https://git@github.com/alkem-io/virtual-contributor-engine.git", rev = "v0.0.4"}
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
