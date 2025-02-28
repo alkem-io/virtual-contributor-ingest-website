@@ -74,7 +74,7 @@ def get_pages(base_url, current_url, found_pages={}) -> Dict[str, BeautifulSoup]
     return found_pages
 
 
-def get_docuemnts(
+def get_documents(
     base_url: str, pages: Dict[str, BeautifulSoup]
 ) -> Dict[str, Document]:
     documents: Dict[str, Document] = {}
@@ -95,7 +95,7 @@ def get_docuemnts(
             metadata={
                 "documentId": document_id,
                 "source": url,
-                "title": page.title and page.title.getText(),
+                "title": page.title.getText() if page.title else "",
                 "type": DocumentType.WEBPAGE.value,
             },
         )
@@ -187,7 +187,7 @@ async def query(input: IngestWebsite) -> Response:
     logger.info(f"Handler invoked for base URL: {input.base_url}")
     pages = get_pages(input.base_url, input.base_url, {})
     logger.info(f"Pages found: {len(pages)}")
-    documents = get_docuemnts(input.base_url, pages)
+    documents = get_documents(input.base_url, pages)
     logger.info(f"Documents found: {len(documents)}")
     prepared_documents = await prepare_documents(documents)
     logger.info(f"Prepared documents: {len(prepared_documents)}")
