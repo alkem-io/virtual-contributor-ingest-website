@@ -1,4 +1,4 @@
-name: Build, Migrate & Deploy to Dev on Hetzner
+name: Build & Deploy to Dev on Hetzner
 
 on:
   push:
