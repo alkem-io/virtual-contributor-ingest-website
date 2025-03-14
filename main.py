@@ -18,8 +18,11 @@ from alkemio_virtual_contributor_engine.alkemio_vc_engine import (
     AlkemioVirtualContributorEngine,
     setup_logger,
 )
-from alkemio_virtual_contributor_engine.events.ingest_website import IngestWebsite
-from alkemio_virtual_contributor_engine.events.response import Response
+from alkemio_virtual_contributor_engine.events import (
+    IngestWebsite,
+    IngestionResult,
+    IngestWebsiteResult,
+)
 
 from config import env
 
@@ -50,7 +53,7 @@ def get_pages(base_url, current_url, found_pages={}) -> Dict[str, BeautifulSoup]
 
     logger.info(f"Processing {current_url}")
     try:
-        page = requests.get(current_url)
+        page = requests.get(current_url, timeout=3)
         page.raise_for_status()
         soup = BeautifulSoup(page.content, "html.parser")
     except (requests.RequestException, requests.Timeout) as e:
@@ -183,9 +186,18 @@ def embed_documents(base_url: str, for_embed: List[Document]):
         logger.info(f"Upserted {len(documents)} documents")
 
 
-async def query(input: IngestWebsite) -> Response:
+async def query(input: IngestWebsite) -> IngestWebsiteResult:
     logger.info(f"Handler invoked for base URL: {input.base_url}")
     pages = get_pages(input.base_url, input.base_url, {})
+
+    if len(pages) == 0:
+        logger.error("No pages found")
+        return IngestWebsiteResult(
+            {
+                "result": IngestionResult.FAILURE,
+                "error": "No pages found.",
+            }
+        )
     logger.info(f"Pages found: {len(pages)}")
     documents = get_documents(input.base_url, pages)
     logger.info(f"Documents found: {len(documents)}")
@@ -193,7 +205,7 @@ async def query(input: IngestWebsite) -> Response:
     logger.info(f"Prepared documents: {len(prepared_documents)}")
     embed_documents(input.base_url, prepared_documents)
     logger.info("Done")
-    return Response()
+    return IngestWebsiteResult({"result": IngestionResult.SUCCESS})
 
 
 engine = AlkemioVirtualContributorEngine()
