@@ -64,8 +64,8 @@ def get_pages(base_url, current_url, found_pages={}) -> Dict[str, BeautifulSoup]
     links = soup.find_all("a")
     logger.info(f"Found {len(links)} links")
     logger.debug(f"Links: {list(map( lambda link: link.get('href', '/'), links))}")
-    for a in links:
-        found_link = a.get("href", "/")
+    for link in links:
+        found_link = link.get("href", "/")
         found_link = re.sub(r"\.+\/", "/", found_link)
         found_link = re.sub(r"\/\/+", "/", found_link)
         found_link = re.sub(r"\/+$", "", found_link)
@@ -167,7 +167,7 @@ def embed_documents(base_url: str, for_embed: List[Document]):
 
     batch_size = 10
     for batch_index in range(0, len(for_embed), batch_size):
-        batch = for_embed[batch_index : batch_index + batch_size]
+        batch = for_embed[batch_index: batch_index + batch_size]
         documents, embeddings, metadatas, ids = [], [], [], []
         for doc in batch:
             documents.append(doc.page_content)
@@ -205,7 +205,7 @@ async def query(input: IngestWebsite) -> IngestWebsiteResult:
     logger.info(f"Prepared documents: {len(prepared_documents)}")
     embed_documents(input.base_url, prepared_documents)
     logger.info("Done")
-    return IngestWebsiteResult({"result": IngestionResult.SUCCESS})
+    return IngestWebsiteResult(result=IngestionResult.SUCCESS)
 
 
 engine = AlkemioVirtualContributorEngine()
