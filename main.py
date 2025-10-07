@@ -162,7 +162,9 @@ def embed_documents(base_url: str, for_embed: List[Document]):
         logger.info("Collection not found")
         logger.error(e)
 
-    collection = chromadb_client.get_or_create_collection(collection_name)
+    collection = chromadb_client.get_or_create_collection(
+        collection_name, embedding_function=None
+    )
     logger.info(f"Collection: {collection.name} created.")
 
     batch_size = 10
