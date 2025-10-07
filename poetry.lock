@@ -81,17 +81,6 @@ typing_extensions = {version = ">=4.5", markers = "python_version < \"3.13\""}
 trio = ["trio (>=0.31.0)"]
 
 [[package]]
-name = "asyncio"
-version = "4.0.0"
-description = "Deprecated backport of asyncio; use the stdlib package instead"
-optional = false
-python-versions = ">=3.4"
-files = [
-    {file = "asyncio-4.0.0-py3-none-any.whl", hash = "sha256:c1eddb0659231837046809e68103969b2bef8b0400d59cfa6363f6b5ed8cc88b"},
-    {file = "asyncio-4.0.0.tar.gz", hash = "sha256:570cd9e50db83bc1629152d4d0b7558d6451bb1bfd5dfc2e935d96fc2f40329b"},
-]
-
-[[package]]
 name = "attrs"
 version = "25.3.0"
 description = "Classes Without Boilerplate"
@@ -3233,4 +3222,4 @@ cffi = ["cffi (>=1.17,<2.0)", "cffi (>=2.0.0b)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "36de5eca06154e01e1189e8bc7b4eedabc0f1cf941936848a7cead112adbe42c"
+content-hash = "2aabae732ed499d4e6d64d7ccc48dd7e22eb53976d0ecc51659f35260b2a6d0e"

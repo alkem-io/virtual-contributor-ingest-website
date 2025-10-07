@@ -18,7 +18,6 @@ load-dotenv = "^0.1.0"
 bcrypt = "^5.0.0"
 langchain-openai = "^0.3.34"
 openai = "^2.1.0"
-asyncio = "^4.0.0"
 alkemio-virtual-contributor-engine = {path = "../alkemio-virtual-contributor-engine"}
 
 
