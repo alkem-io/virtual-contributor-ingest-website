@@ -47,8 +47,10 @@ chromadb-client = "^1.1.0"
 load-dotenv = "^0.1.0"
 
 [package.source]
-type = "directory"
-url = "../alkemio-virtual-contributor-engine"
+type = "git"
+url = "git@github.com:alkem-io/alkemio-virtual-contributor-engine.git"
+reference = "v0.2.0"
+resolved_reference = "8153b83d5f787171c71aee33fe16474c36dad1d6"
 
 [[package]]
 name = "annotated-types"
@@ -3222,4 +3224,4 @@ cffi = ["cffi (>=1.17,<2.0)", "cffi (>=2.0.0b)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "2aabae732ed499d4e6d64d7ccc48dd7e22eb53976d0ecc51659f35260b2a6d0e"
+content-hash = "b162ab46d3df1227656b70a0a876bd4c27c5e697ef301bcc7b62f2514eb81786"
