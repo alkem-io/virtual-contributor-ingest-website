@@ -48,7 +48,7 @@ load-dotenv = "^0.1.0"
 
 [package.source]
 type = "git"
-url = "git@github.com:alkem-io/alkemio-virtual-contributor-engine.git"
+url = "https://git@github.com/alkem-io/virtual-contributor-engine.git"
 reference = "v0.2.0"
 resolved_reference = "8153b83d5f787171c71aee33fe16474c36dad1d6"
 
@@ -3224,4 +3224,4 @@ cffi = ["cffi (>=1.17,<2.0)", "cffi (>=2.0.0b)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "b162ab46d3df1227656b70a0a876bd4c27c5e697ef301bcc7b62f2514eb81786"
+content-hash = "38b06d453cab4df5f4418b74c84ecf9d7a782912a9525d99fd2aa2deb96d38c4"
