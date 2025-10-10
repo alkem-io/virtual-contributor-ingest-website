@@ -1,3 +1,4 @@
+from config import env
 from typing import Dict, List
 import re
 import requests
@@ -8,23 +9,17 @@ from langchain_core.documents import Document
 from urllib.parse import urlparse
 import asyncio
 
-from ai_models import embedding_function
-
 from local_types import DocumentType
 
-
-from alkemio_virtual_contributor_engine.chromadb_client import chromadb_client
-from alkemio_virtual_contributor_engine.alkemio_vc_engine import (
+from alkemio_virtual_contributor_engine import (
+    chromadb_client,
+    openai_embeddings,
     AlkemioVirtualContributorEngine,
-    setup_logger,
-)
-from alkemio_virtual_contributor_engine.events import (
     IngestWebsite,
     IngestionResult,
     IngestWebsiteResult,
+    setup_logger
 )
-
-from config import env
 
 logger = setup_logger(__name__)
 
@@ -176,12 +171,12 @@ def embed_documents(base_url: str, for_embed: List[Document]):
             metadatas.append(doc.metadata)
             ids.append(doc.metadata["documentId"])
         logger.info(f"Embedding {len(documents)} documents")
-        embeddings = embedding_function(documents)
+        embeddings = openai_embeddings.embed_documents(documents)
         logger.info(f"Upserting {len(documents)} documents")
 
         collection.upsert(
             documents=documents,
-            embeddings=embeddings,
+            embeddings=list(embeddings),
             metadatas=metadatas,
             ids=ids,
         )
