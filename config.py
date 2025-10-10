@@ -1,8 +1,6 @@
 import os
 from dataclasses import dataclass
-
 from dotenv import load_dotenv
-
 load_dotenv()
 
 
@@ -13,11 +11,14 @@ class Env:
     verbose: bool
     chunk_size: int
     openai_endpoint: str
+
     openai_key: str
     openai_api_version: str
     embeddings_model_name: str
+
     mistral_endpoint: str
     mistral_key: str
+
     process_pages_limit: int
 
     def __init__(self):
