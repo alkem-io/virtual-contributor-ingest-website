@@ -15,7 +15,6 @@ langgraph = "^0.6.8"
 azure-ai-inference = "^1.0.0b9"
 load-dotenv = "^0.1.0"
 bcrypt = "^5.0.0"
-openai = "^2.1.0"
 alkemio-virtual-contributor-engine = {path = "../alkemio-virtual-contributor-engine"}
 
 [tool.poetry.group.dev.dependencies]
