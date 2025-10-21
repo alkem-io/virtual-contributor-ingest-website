@@ -190,10 +190,8 @@ async def query(input: IngestWebsite) -> IngestWebsiteResult:
     if len(pages) == 0:
         logger.error("No pages found")
         return IngestWebsiteResult(
-            {
-                "result": IngestionResult.FAILURE,
-                "error": "No pages found.",
-            }
+            result=IngestionResult.FAILURE,
+            error="No pages found.",
         )
     logger.info(f"Pages found: {len(pages)}")
     documents = get_documents(input.base_url, pages)
