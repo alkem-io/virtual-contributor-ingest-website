@@ -4,12 +4,13 @@ import re
 import requests
 from bs4 import BeautifulSoup
 from graph import graph
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 from urllib.parse import urlparse
 import asyncio
 
 from local_types import DocumentType
+from url_utils import is_file_link
 
 from alkemio_virtual_contributor_engine import (
     chromadb_client,
@@ -40,8 +41,10 @@ def get_pages(base_url, current_url, found_pages={}) -> Dict[str, BeautifulSoup]
     if not current_url.startswith(base_url) and not current_url.startswith("/"):
         should_return = True
         logger.info(f"Outside of domain {current_url}")
-    if current_url.endswith(".pdf"):
+    is_file, extension = is_file_link(current_url)
+    if is_file:
         should_return = True
+        logger.info(f"Not a page link - {extension}")
 
     if should_return:
         return found_pages
@@ -62,12 +65,12 @@ def get_pages(base_url, current_url, found_pages={}) -> Dict[str, BeautifulSoup]
     for link in links:
         found_link = link.get("href", "/")
         found_link = re.sub(r"\.+\/", "/", found_link)
-        found_link = re.sub(r"\/\/+", "/", found_link)
+        found_link = re.sub(r"(?<!:)\/\/+", "/", found_link)
         found_link = re.sub(r"\/+$", "", found_link)
         if found_link.startswith("/"):
             found_link = domain + found_link
-            link_pages = get_pages(base_url, found_link, found_pages)
-            found_pages = found_pages | link_pages
+        link_pages = get_pages(base_url, found_link, found_pages)
+        found_pages = found_pages | link_pages
 
     return found_pages
 
