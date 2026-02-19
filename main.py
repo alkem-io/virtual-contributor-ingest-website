@@ -3,9 +3,10 @@ from typing import Dict, List
 import re
 import requests
 from bs4 import BeautifulSoup
-from graph import graph
+from graph import build_graph
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
+from langchain_core.language_models.chat_models import BaseChatModel
 from urllib.parse import urlparse
 import asyncio
 
@@ -17,8 +18,11 @@ from alkemio_virtual_contributor_engine import (
     openai_embeddings,
     AlkemioVirtualContributorEngine,
     IngestWebsite,
+    SummarizationModel,
     IngestionResult,
     IngestWebsiteResult,
+    mistral_medium,
+    mistral_large,
     setup_logger
 )
 
@@ -103,8 +107,9 @@ def get_documents(
     return documents
 
 
-async def prepare_documents(documents: Dict[str, Document]):
+async def prepare_documents(documents: Dict[str, Document], model: BaseChatModel):
 
+    graph = build_graph(model)
     for_embed: list[Document] = []
     for url, document in documents.items():
         logger.info(f"Preparing {url}")
@@ -187,7 +192,17 @@ def embed_documents(base_url: str, for_embed: List[Document]):
 
 
 async def query(input: IngestWebsite) -> IngestWebsiteResult:
+    logger.debug(f"Incoming message: {input}")
     logger.info(f"Handler invoked for base URL: {input.base_url}")
+
+    # Select model based on summarization_model parameter
+    if input.summarization_model == SummarizationModel.MISTRAL_LARGE:
+        model = mistral_large
+        logger.info("Using mistral-large for summarization")
+    else:
+        model = mistral_medium
+        logger.info("Using mistral-medium for summarization")
+
     pages = get_pages(input.base_url, input.base_url, {})
 
     if len(pages) == 0:
@@ -199,7 +214,7 @@ async def query(input: IngestWebsite) -> IngestWebsiteResult:
     logger.info(f"Pages found: {len(pages)}")
     documents = get_documents(input.base_url, pages)
     logger.info(f"Documents found: {len(documents)}")
-    prepared_documents = await prepare_documents(documents)
+    prepared_documents = await prepare_documents(documents, model)
     logger.info(f"Prepared documents: {len(prepared_documents)}")
     embed_documents(input.base_url, prepared_documents)
     logger.info("Done")

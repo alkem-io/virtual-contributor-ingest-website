@@ -20,6 +20,7 @@ class Env:
     mistral_key: str
 
     process_pages_limit: int
+    summary_length: int
 
     def __init__(self):
         self.log_level = os.getenv("LOG_LEVEL", "INFO")
@@ -33,6 +34,7 @@ class Env:
         self.mistral_endpoint = os.getenv("AZURE_MISTRAL_ENDPOINT", "")
         self.mistral_key = os.getenv("AZURE_MISTRAL_API_KEY", "")
         self.process_pages_limit = int(os.getenv("PROCESS_PAGES_LIMIT", "20"))
+        self.summary_length = int(os.getenv("SUMMARY_LENGTH", "10000"))
 
 
 env = Env()
