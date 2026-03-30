@@ -87,7 +87,7 @@ Published to RabbitMQ result queue after processing.
 
 Both `document_graph` and `bok_graph` follow the same state machine:
 
-```
+```text
 State = { chunks: list[Document], index: int, summary: str }
 
 START → initial_summary → [should_refine?]
@@ -102,7 +102,7 @@ for many chunks, it ramps from the 40% floor up to 100% at the last chunk.
 
 ## Relationships
 
-```
+```text
 Website Page  ──(1:1)──>  Document
 Document      ──(1:N)──>  Document Chunk     (when content >= chunk_size)
 Document      ──(0:1)──>  Document Summary   (when chunk count > 3)

@@ -66,7 +66,7 @@ and both are stored as embeddings.
 1. **Given** a website with pages that split into more than 3 chunks,
    **When** the service processes them,
    **Then** each such document receives an individual structured
-   summary with markdown headers and bullet points, stored with
+   summary with Markdown headers and bullet points, stored with
    embeddingType "summary".
 
 2. **Given** a website with pages that split into 3 or fewer chunks,
@@ -272,7 +272,7 @@ and confirming it starts and processes a message successfully.
   Mistral configuration.
 - **FR-004**: Service MUST produce per-document summaries for
   documents that split into more than 3 chunks, using structured
-  markdown prompts optimized for semantic search.
+  Markdown prompts optimized for semantic search.
 - **FR-005**: Service MUST produce a single body-of-knowledge summary
   aggregating all document summaries and chunk content for the
   entire website.
@@ -313,7 +313,7 @@ and confirming it starts and processes a message successfully.
   source URL, title, type).
 - **Document Chunk**: A segment of a document produced by the text
   splitter, with metadata including chunkIndex and embeddingType.
-- **Document Summary**: A structured markdown summary of a single
+- **Document Summary**: A structured Markdown summary of a single
   document's chunks, produced by the document_graph when chunk
   count exceeds 3.
 - **Body-of-Knowledge Summary**: A high-level overview aggregating
