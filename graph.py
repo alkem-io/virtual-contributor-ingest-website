@@ -4,111 +4,162 @@ from langgraph.constants import START, END
 from langgraph.graph import StateGraph
 from langchain_core.documents import Document
 from typing_extensions import TypedDict
-from alkemio_virtual_contributor_engine import mistral_medium as llm
+from alkemio_virtual_contributor_engine import mistral_small as llm
 from dotenv import load_dotenv
+import os
+
 load_dotenv()
 
+SUMMARY_LENGTH = int(os.getenv("SUMMARY_LENGTH", "10000"))
 
-system_prompt = (
-    "You are tasked with concising summaries based entirely on the user "
-    "input. While doing so preserve as much information as possible like "
-    "names, references titles, dates, etc."
+
+def _progressive_length(current_chunk: int, total_chunks: int) -> int:
+    """Early chunks get less budget, later chunks more — avoids front-loading."""
+    min_ratio = 0.4
+    progress = current_chunk / total_chunks
+    return round(SUMMARY_LENGTH * max(min_ratio, progress))
+
+
+# ── Document summarization prompts ────────────────────────────────────────
+
+doc_system_prompt = (
+    "Expert at creating structured, information-dense summaries for semantic search and vector retrieval.\n\n"
+    "FORMAT:\n"
+    "- Use markdown headers (### or **bold**) to organize content by theme\n"
+    "- Use bullet points for lists of related facts\n"
+    "- Each bullet must contain specific facts with dates, names, or numbers\n\n"
+    "REQUIREMENTS:\n"
+    "- Preserve ALL key entities: names, titles, dates, numbers, technical terms, URLs, references\n"
+    "- Use concrete, factual language - no vague descriptions\n"
+    "- Include domain-specific terminology and searchable keywords\n"
+    "- Maximize information density - every sentence must convey specific facts\n\n"
+    "FORBIDDEN:\n"
+    "- No repetitive sentence patterns\n"
+    "- No generic filler statements without specific details\n"
+    "- No vague phrases like \"various things\" or \"several aspects\"\n"
+    "- No interpretations or opinions not in source\n"
+    "- Never repeat the same information twice"
 )
-"""
-   In your summary preserve as much information as possible, including:
-   - References and connections between documents
-   - Names of participants and their roles
-   - Titles, dates, and temporal relationships
-   - Key concepts and their relationships within the body of knowledge
-   Focus on maintaining the coherence of information across document boundaries.`
 
-"""
-summarize_prompt = (
-    "Write a detailed summary, no more than {summaryLength} characters "
-    "of the following: {context}"
+doc_summarize_prompt = (
+    "Create a structured summary of the following content using markdown headers and bullet points.\n"
+    "Include only essential facts and entities - no filler or repetition.\n"
+    "Target length: around {maxSummaryLength} characters. You may exceed this if needed to preserve important information.\n\n"
+    "Content:\n{context}\n\nSummary:"
 )
-refine_prompt = """
-    `Produce a final detailed summary, no more than {summaryLength} characters.
-     Existing summary up to this point:
 
-     {currentSummary}
+doc_refine_prompt = (
+    "Refine this summary by integrating new information.\n"
+    "Maintain markdown structure with headers and bullet points.\n"
+    "Target length: around {maxSummaryLength} characters. You may exceed this if needed to preserve important information.\n\n"
+    "Current summary:\n{currentSummary}\n\n"
+    "New content to integrate:\n{context}\n\n"
+    "Instructions:\n"
+    "1. Merge new facts into existing sections or create new sections as needed\n"
+    "2. Remove any redundancy - never repeat the same fact twice\n"
+    "3. Preserve ALL specific entities, dates, and details from both sources\n"
+    "4. Keep bullet points factual and specific - no generic statements\n\n"
+    "Refined summary:"
+)
 
-     New context: {context}
+# ── Body-of-knowledge summarization prompts ───────────────────────────────
 
-     Given the new context, refine the original summary.`
-"""
+bok_system_prompt = (
+    "Create a structured high-level overview of an entire body of knowledge for semantic search retrieval.\n\n"
+    "This summary helps determine if this body of knowledge is relevant to user queries.\n\n"
+    "FORMAT:\n"
+    "- Use markdown headers (### or **bold**) to organize by theme\n"
+    "- Use bullet points for lists of entities, dates, and connections\n"
+    "- Each section should contain specific, searchable facts\n\n"
+    "REQUIREMENTS:\n"
+    "- Capture overall scope, themes, and domains covered\n"
+    "- Preserve key cross-cutting entities: participant names, organizations, major initiatives\n"
+    "- Include temporal scope (date ranges, time periods)\n"
+    "- Identify main topic areas and their relationships\n"
+    "- Use searchable terminology\n\n"
+    "FORBIDDEN:\n"
+    "- No repetitive sentence patterns\n"
+    "- No generic filler statements\n"
+    "- No redundant information - each fact appears only once"
+)
 
+bok_summarize_prompt = (
+    "Create a structured overview of this body of knowledge using markdown headers and bullet points.\n"
+    "Include only essential themes, entities, and connections - no filler or repetition.\n"
+    "Target length: around {maxSummaryLength} characters. You may exceed this if needed to preserve important information.\n\n"
+    "This is a collection of summaries from individual documents:\n{context}\n\nOverview summary:"
+)
+
+bok_refine_prompt = (
+    "Refine this body of knowledge overview by integrating additional information.\n"
+    "Maintain markdown structure with headers and bullet points.\n"
+    "Target length: around {maxSummaryLength} characters. You may exceed this if needed to preserve important information.\n\n"
+    "Current overview:\n{currentSummary}\n\n"
+    "Additional document summaries:\n{context}\n\n"
+    "Instructions:\n"
+    "1. Merge new themes into existing sections or create new sections as needed\n"
+    "2. Remove any redundancy - never repeat the same fact or entity twice\n"
+    "3. Add newly discovered entities, dates, or connections\n"
+    "4. Keep all content specific and factual - no generic statements\n\n"
+    "Refined overview:"
+)
+
+
+# ── Graph builder ─────────────────────────────────────────────────────────
 
 class State(TypedDict):
     chunks: list[Document]
     index: int
-    summary: Document
+    summary: str
 
 
-def initial_summary(state: State):
-    chunk = state["chunks"][0]
+def _build_graph(system_prompt: str, summarize_template: str, refine_template: str):
+    """Build a summarize-then-refine LangGraph with progressive length."""
 
-    prompt = ChatPromptTemplate.from_messages([
+    summarize_prompt = ChatPromptTemplate.from_messages([
         SystemMessage(content=system_prompt),
-        HumanMessage(
-            content=summarize_prompt.format(
-                summaryLength=1000, context=chunk.page_content
-            )
-        ),
+        HumanMessage(content=summarize_template),
+    ])
+    refine_prompt = ChatPromptTemplate.from_messages([
+        SystemMessage(content=system_prompt),
+        HumanMessage(content=refine_template),
     ])
 
-    chain = prompt | llm
-    result = chain.invoke({})
+    summarize_chain = summarize_prompt | llm
+    refine_chain = refine_prompt | llm
 
-    return {
-        "index": 1,
-        "summary": Document(
-            page_content=result.content,
-            metadata={
-                "source": chunk.metadata["source"],
-                "title": chunk.metadata["title"],
-                "type": chunk.metadata["type"],
-                "embeddingType": "summary",
-            },
-        ),
-    }
+    def initial_summary(state: State):
+        max_len = _progressive_length(1, len(state["chunks"]))
+        result = summarize_chain.invoke({
+            "context": state["chunks"][0].page_content,
+            "maxSummaryLength": max_len,
+        })
+        return {"index": 1, "summary": result.content}
 
+    def refine_summary(state: State):
+        max_len = _progressive_length(state["index"] + 1, len(state["chunks"]))
+        result = refine_chain.invoke({
+            "currentSummary": state["summary"],
+            "context": state["chunks"][state["index"]].page_content,
+            "maxSummaryLength": max_len,
+        })
+        return {"index": state["index"] + 1, "summary": result.content}
 
-def refine_summary(state: State):
-    prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content=system_prompt),
-        HumanMessage(
-            content=refine_prompt.format(
-                summaryLength=1000,
-                currentSummary=state["summary"].page_content,
-                context=state["chunks"][state["index"]].page_content,
-            )
-        ),
-    ])
+    def should_refine(state: State):
+        if state["index"] >= len(state["chunks"]):
+            return END
+        return "refine_summary"
 
-    chain = prompt | llm
-    result = chain.invoke({})
-
-    return {
-        "index": state["index"] + 1,
-        "summary": Document(
-            page_content=result.content, metadata=state["summary"].metadata
-        ),
-    }
+    return (
+        StateGraph(State)
+        .add_node("initial_summary", initial_summary)
+        .add_node("refine_summary", refine_summary)
+        .add_edge(START, "initial_summary")
+        .add_conditional_edges("initial_summary", should_refine, ["refine_summary", END])
+        .add_conditional_edges("refine_summary", should_refine, ["refine_summary", END])
+        .compile()
+    )
 
 
-def should_refine(state: State):
-    if state["index"] >= len(state["chunks"]):
-        return END
-    return "refine_summary"
-
-
-graph = (
-    StateGraph(State)
-    .add_node("initial_summary", initial_summary)
-    .add_node("refine_summary", refine_summary)
-    .add_edge(START, "initial_summary")
-    .add_conditional_edges("initial_summary", should_refine, ["refine_summary", END])
-    .add_conditional_edges("refine_summary", should_refine, ["refine_summary", END])
-    .compile()
-)
+document_graph = _build_graph(doc_system_prompt, doc_summarize_prompt, doc_refine_prompt)
+bok_graph = _build_graph(bok_system_prompt, bok_summarize_prompt, bok_refine_prompt)

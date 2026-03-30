@@ -2,12 +2,21 @@
 .env
 openai.env
 azure.env
-/__pycache__/*
+__pycache__/
+*.pyc
+.venv/
+venv/
 /vectordb/*
 local.env
 docker-compose-local.yaml
 .DS_Store
 *.log
+*.tmp
+*.swp
 repos
 repos/*
+.coverage
+htmlcov/
+*.egg-info/
+dist/
 

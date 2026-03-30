@@ -1,14 +1,11 @@
 # =============================================================================
-# Stage 1: Build stage - install dependencies using Debian Python for distroless compatibility
+# Stage 1: Build stage - Python 3.12 (required by shared library)
 # =============================================================================
-FROM debian:bookworm-slim AS builder
+FROM python:3.12-slim-bookworm AS builder
 
-# Install Python, pip, git and build essentials in a single layer
+# Install git (required for git-based Poetry deps)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        python3 \
-        python3-pip \
-        python3-venv \
         git \
         ca-certificates && \
     rm -rf /var/lib/apt/lists/*
@@ -31,48 +28,35 @@ COPY pyproject.toml poetry.lock* ./
 
 # Install dependencies (without dev dependencies)
 RUN poetry install --only main --no-root --no-ansi && \
-    rm -rf $POETRY_CACHE_DIR && \
-    # Remove pip, setuptools, wheel and pycache to save space
-    /app/.venv/bin/pip uninstall -y pip setuptools wheel && \
-    find /app/.venv -type d -name "__pycache__" -exec rm -rf {} +
+    rm -rf $POETRY_CACHE_DIR
+
+# Copy application code
+COPY . /app/
+
+RUN touch /app/app.log
 
 # =============================================================================
-# Stage 2: Runtime stage - Google distroless Python image
+# Stage 2: Runtime stage
 # =============================================================================
-# NOTE: This image does NOT include Git or Hugo. The 'ingest' operation 
-# will NOT work. Use the 'runtime-full' target if you need ingest capability.
-# =============================================================================
-FROM gcr.io/distroless/python3-debian12:nonroot AS runtime
+FROM python:3.12-slim-bookworm AS runtime
 
 WORKDIR /app
 
-# Copy the virtual environment from builder
-# We keep the same path (.venv) to ensure symlinks and paths work correctly
-COPY --from=builder --chown=nonroot:nonroot /app/.venv /app/.venv
+COPY --from=builder /app /app
 
-# Copy application code
-COPY --chown=nonroot:nonroot . /app
-
-# Create a writable log file for the nonroot user
-# The application tries to write to /app/app.log
-RUN touch /app/app.log && chown nonroot:nonroot /app/app.log
-
-# Set PATH to use the venv's python executable
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PYTHONPATH="/app/.venv/lib/python3.11/site-packages:/app"
+    PYTHONUNBUFFERED=1
 
-# Explicitly define the user
-USER nonroot
+RUN useradd --create-home --uid 1000 appuser
+USER appuser
 
-# Run main.py using the venv python
 ENTRYPOINT ["/app/.venv/bin/python", "main.py"]
 
 # =============================================================================
 # Stage 3: Full runtime with Git and Hugo (for ingest capability)
 # =============================================================================
-FROM debian:bookworm-slim AS runtime-full
+FROM python:3.12-slim-bookworm AS runtime-full
 
 ARG HUGO_VERSION=0.121.2
 ARG TARGETARCH
@@ -82,7 +66,6 @@ WORKDIR /app
 # Install runtime dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        python3 \
         git \
         ca-certificates && \
     rm -rf /var/lib/apt/lists/*
@@ -100,7 +83,7 @@ RUN useradd --create-home --uid 1000 --shell /bin/bash appuser
 COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
 
 # Copy application code
-COPY --chown=appuser:appuser . .
+COPY --from=builder --chown=appuser:appuser /app /app
 
 # Create a writable log file for the appuser
 RUN touch /app/app.log && chown appuser:appuser /app/app.log

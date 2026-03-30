@@ -3,7 +3,7 @@ from typing import Dict, List
 import re
 import requests
 from bs4 import BeautifulSoup
-from graph import graph
+from graph import document_graph, bok_graph
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 from urllib.parse import urlparse
@@ -13,8 +13,7 @@ from local_types import DocumentType
 from url_utils import is_file_link
 
 from alkemio_virtual_contributor_engine import (
-    chromadb_client,
-    openai_embeddings,
+    ingest_documents,
     AlkemioVirtualContributorEngine,
     IngestWebsite,
     IngestionResult,
@@ -61,7 +60,7 @@ def get_pages(base_url, current_url, found_pages={}) -> Dict[str, BeautifulSoup]
     found_pages[current_url] = soup
     links = soup.find_all("a")
     logger.info(f"Found {len(links)} links")
-    logger.debug(f"Links: {list(map( lambda link: link.get('href', '/'), links))}")
+    logger.debug(f"Links: {list(map(lambda link: link.get('href', '/'), links))}")
     for link in links:
         found_link = link.get("href", "/")
         found_link = re.sub(r"\.+\/", "/", found_link)
@@ -103,9 +102,11 @@ def get_documents(
     return documents
 
 
-async def prepare_documents(documents: Dict[str, Document]):
+async def prepare_documents(base_url: str, documents: Dict[str, Document]):
 
     for_embed: list[Document] = []
+    summaries: list[str] = []
+
     for url, document in documents.items():
         logger.info(f"Preparing {url}")
         if len(document.page_content) >= env.chunk_size:
@@ -126,64 +127,79 @@ async def prepare_documents(documents: Dict[str, Document]):
                 )
 
             for_embed += splitted
-            try:
-                # summarise only if there are more than one chunk and less than 10 to save resources
-                if len(splitted) > 1 and len(splitted) < 10:
-                    logger.info(f"Summarizing {url}")
-                    summary = (await graph.ainvoke({"chunks": list(splitted)}))[
-                        "summary"
-                    ]
-                    summary.metadata.update(
-                        {
-                            "documentId": f"{document.metadata['documentId']}-summary",
-                            "embeddingType": "summary",
-                        }
+
+            if len(splitted) > 3:
+                # Document fragmented into many chunks — summarize to preserve coherence
+                logger.info(f"Summarizing {url}: {len(splitted)} chunks (>3 threshold)")
+                try:
+                    result = await document_graph.ainvoke(
+                        {"chunks": list(splitted)},
+                        {"recursion_limit": len(splitted) * 2 + 10},
                     )
-                    logger.info(f"Summary length: {len(summary.page_content)}")
-                    for_embed += [summary]
-            except Exception as e:
-                logger.error(e)
-                logger.error(f"Failed to summarize {url}")
+                    summary_text = result["summary"]
+                    summary_doc = Document(
+                        page_content=summary_text,
+                        metadata={
+                            "documentId": f"{document.metadata['documentId']}-summary",
+                            "source": document.metadata["source"],
+                            "title": document.metadata["title"],
+                            "type": document.metadata["type"],
+                            "embeddingType": "summary",
+                        },
+                    )
+                    logger.info(f"Summary length: {len(summary_text)} chars")
+                    for_embed.append(summary_doc)
+                    summaries.append(summary_text)
+                except Exception as e:
+                    logger.error(f"Failed to summarize {url}: {e}")
+            else:
+                # Few chunks — use raw content for BoK input
+                logger.info(f"{url}: {len(splitted)} chunks, using chunks directly")
+                for chunk in splitted:
+                    summaries.append(chunk.page_content)
         else:
-            for_embed += [document]
+            for_embed.append(document)
+            summaries.append(document.page_content)
+
+    # Body-of-knowledge summarization
+    if summaries:
+        logger.info(f"Starting body-of-knowledge summarization from {len(summaries)} summaries")
+        try:
+            bok_text = "\n\n".join(summaries)
+            bok_splitter = RecursiveCharacterTextSplitter(
+                chunk_size=env.chunk_size, chunk_overlap=env.chunk_size // 5
+            )
+            bok_chunks = bok_splitter.create_documents([bok_text])
+            logger.info(f"BoK split into {len(bok_chunks)} chunks")
+
+            result = await bok_graph.ainvoke(
+                {"chunks": list(bok_chunks)},
+                {"recursion_limit": len(bok_chunks) * 2 + 10},
+            )
+            bok_summary = result["summary"]
+
+            parsed = urlparse(base_url)
+            bok_doc = Document(
+                page_content=bok_summary,
+                metadata={
+                    "documentId": "body-of-knowledge-summary",
+                    "source": base_url,
+                    "title": parsed.netloc,
+                    "type": "bodyOfKnowledgeSummary",
+                    "embeddingType": "summary",
+                },
+            )
+            logger.info(f"BoK summary length: {len(bok_summary)} chars")
+            for_embed.append(bok_doc)
+        except Exception as e:
+            logger.error(f"Failed to create BoK summary: {e}")
+
     return for_embed
 
 
 def embed_documents(base_url: str, for_embed: List[Document]):
     collection_name = f"{urlparse(base_url).netloc}-knowledge".replace(":", "-")
-    try:
-        collection = chromadb_client.get_collection(collection_name)
-        if collection:
-            logger.info(f"Collection: {collection.name} exists. Deleting...")
-        chromadb_client.delete_collection(collection_name)
-    except Exception as e:
-        logger.info("Collection not found")
-        logger.error(e)
-
-    collection = chromadb_client.get_or_create_collection(
-        collection_name, embedding_function=None
-    )
-    logger.info(f"Collection: {collection.name} created.")
-
-    batch_size = 10
-    for batch_index in range(0, len(for_embed), batch_size):
-        batch = for_embed[batch_index: batch_index + batch_size]
-        documents, embeddings, metadatas, ids = [], [], [], []
-        for doc in batch:
-            documents.append(doc.page_content)
-            metadatas.append(doc.metadata)
-            ids.append(doc.metadata["documentId"])
-        logger.info(f"Embedding {len(documents)} documents")
-        embeddings = openai_embeddings.embed_documents(documents)
-        logger.info(f"Upserting {len(documents)} documents")
-
-        collection.upsert(
-            documents=documents,
-            embeddings=list(embeddings),
-            metadatas=metadatas,
-            ids=ids,
-        )
-        logger.info(f"Upserted {len(documents)} documents")
+    ingest_documents(collection_name, for_embed)
 
 
 async def query(input: IngestWebsite) -> IngestWebsiteResult:
@@ -199,7 +215,7 @@ async def query(input: IngestWebsite) -> IngestWebsiteResult:
     logger.info(f"Pages found: {len(pages)}")
     documents = get_documents(input.base_url, pages)
     logger.info(f"Documents found: {len(documents)}")
-    prepared_documents = await prepare_documents(documents)
+    prepared_documents = await prepare_documents(input.base_url, documents)
     logger.info(f"Prepared documents: {len(prepared_documents)}")
     embed_documents(input.base_url, prepared_documents)
     logger.info("Done")
