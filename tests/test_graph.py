@@ -29,9 +29,17 @@ class TestProgressiveLength:
         result = _progressive_length(1, 1)
         assert result == SUMMARY_LENGTH
 
-    def test_respects_summary_length_env(self):
-        result = _progressive_length(10, 10)
-        assert result == SUMMARY_LENGTH
+    def test_respects_summary_length_env(self, monkeypatch):
+        import importlib
+        import graph as graph_mod
+        monkeypatch.setenv("SUMMARY_LENGTH", "5000")
+        importlib.reload(graph_mod)
+        assert graph_mod.SUMMARY_LENGTH == 5000
+        result = graph_mod._progressive_length(10, 10)
+        assert result == 5000
+        # Reload again to restore original value for other tests
+        monkeypatch.delenv("SUMMARY_LENGTH")
+        importlib.reload(graph_mod)
 
 
 class TestBuildGraph:
