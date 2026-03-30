@@ -1,6 +1,8 @@
 [flake8]
 max-line-length = 100
 extend-ignore = E203, W503
+per-file-ignores =
+    graph.py:E501
 exclude =
     .git,
     __pycache__,
@@ -8,4 +10,6 @@ exclude =
     venv,
     build,
     dist,
-    *.egg-info
+    *.egg-info,
+    .specify,
+    specs
