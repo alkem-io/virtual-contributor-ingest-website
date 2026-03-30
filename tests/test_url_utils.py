@@ -63,7 +63,7 @@ class TestIsFileLink:
     def test_no_download_attribute(self):
         link = MagicMock()
         link.has_attr.return_value = False
-        is_file, ext = is_file_link("https://example.com/about", link)
+        is_file, _ext = is_file_link("https://example.com/about", link)
         assert is_file is False
 
     def test_query_string_ignored(self):

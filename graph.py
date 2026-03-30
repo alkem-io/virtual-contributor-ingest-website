@@ -1,5 +1,4 @@
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.messages import SystemMessage, HumanMessage
 from langgraph.constants import START, END
 from langgraph.graph import StateGraph
 from langchain_core.documents import Document
@@ -117,12 +116,12 @@ def _build_graph(system_prompt: str, summarize_template: str, refine_template: s
     """Build a summarize-then-refine LangGraph with progressive length."""
 
     summarize_prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content=system_prompt),
-        HumanMessage(content=summarize_template),
+        ("system", system_prompt),
+        ("human", summarize_template),
     ])
     refine_prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content=system_prompt),
-        HumanMessage(content=refine_template),
+        ("system", system_prompt),
+        ("human", refine_template),
     ])
 
     summarize_chain = summarize_prompt | llm

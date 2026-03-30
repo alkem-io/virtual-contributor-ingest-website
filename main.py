@@ -152,6 +152,7 @@ async def prepare_documents(base_url: str, documents: Dict[str, Document]):
                     summaries.append(summary_text)
                 except Exception as e:
                     logger.error(f"Failed to summarize {url}: {e}")
+                    summaries.append(document.page_content)
             else:
                 # Few chunks — use raw content for BoK input
                 logger.info(f"{url}: {len(splitted)} chunks, using chunks directly")

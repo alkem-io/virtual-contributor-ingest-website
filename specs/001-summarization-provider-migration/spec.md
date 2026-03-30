@@ -203,8 +203,8 @@ Docker build, and that it blocks merging on failure.
 1. **Given** a pull request targeting develop,
    **When** the CI pipeline triggers,
    **Then** it runs flake8 linting, pytest with 90% coverage
-   threshold, and Docker image build in sequence, failing the
-   pipeline if any step fails.
+   threshold, and Docker image build as parallel jobs, failing the
+   pipeline if any job fails.
 
 2. **Given** a pull request where all checks pass,
    **When** the CI pipeline completes,

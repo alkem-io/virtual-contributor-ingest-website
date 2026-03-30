@@ -95,9 +95,10 @@ START → initial_summary → [should_refine?]
                               └─ index >= len(chunks) → END
 ```
 
-The progressive length budget (`_progressive_length`) scales the
-`maxSummaryLength` parameter from `0.4 * SUMMARY_LENGTH` at the
-first chunk up to `1.0 * SUMMARY_LENGTH` at the last chunk.
+The progressive length budget (`_progressive_length`) uses a floor of
+`0.4 * SUMMARY_LENGTH`, scaling via `max(0.4, current_chunk / total_chunks)`.
+For a single chunk this yields 100%; for two chunks, 50% then 100%;
+for many chunks, it ramps from the 40% floor up to 100% at the last chunk.
 
 ## Relationships
 

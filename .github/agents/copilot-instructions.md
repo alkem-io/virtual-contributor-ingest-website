@@ -4,26 +4,39 @@ Auto-generated from all feature plans. Last updated: 2026-03-30
 
 ## Active Technologies
 
-- Python 3.12+ + `alkemio-virtual-contributor-engine` v0.8.0 (provides `mistral_small` LLM, `ingest_documents`, `setup_logger`, RabbitMQ consumer, shared types), `langgraph` (summarization state machines), `langchain` + `langchain-text-splitters` (prompt templates, chunking), `beautifulsoup4` + `requests` (web crawling), `bs4` (HTML parsing) (001-summarization-provider-migration)
+- Python 3.12+
+- alkemio-virtual-contributor-engine v0.8.0 (base library)
+- LangGraph (summarization state machines)
+- LangChain + langchain-text-splitters (prompt templates, chunking)
+- BeautifulSoup4 + requests (web crawling, HTML parsing)
+- ChromaDB (vector database, via engine library)
+- Mistral AI (LLM provider)
 
 ## Project Structure
 
 ```text
-src/
-tests/
+main.py              # Entry point, RabbitMQ consumer, crawling, pipeline
+graph.py             # LangGraph summarization graphs
+config.py            # Environment variable loading
+url_utils.py         # URL classification utility
+local_types.py       # DocumentType enum
+tests/               # pytest test suite
 ```
 
 ## Commands
 
-cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLOGIES] pytest [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLOGIES] ruff check .
+```bash
+poetry install          # Install dependencies
+poetry run python main.py  # Run the service
+poetry run pytest       # Run tests
+poetry run flake8       # Run linter
+```
 
 ## Code Style
 
-Python 3.12+: Follow standard conventions
-
-## Recent Changes
-
-- 001-summarization-provider-migration: Added Python 3.12+ + `alkemio-virtual-contributor-engine` v0.8.0 (provides `mistral_small` LLM, `ingest_documents`, `setup_logger`, RabbitMQ consumer, shared types), `langgraph` (summarization state machines), `langchain` + `langchain-text-splitters` (prompt templates, chunking), `beautifulsoup4` + `requests` (web crawling), `bs4` (HTML parsing)
+- Python 3.12+: Follow flake8 rules (max-line-length=100)
+- Use `setup_logger(__name__)` for logging — never `print()`
+- All config via environment variables — never hardcode credentials
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

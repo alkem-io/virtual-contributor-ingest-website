@@ -350,6 +350,8 @@ class TestPrepareDocuments:
         # Should still have chunks even though summarization failed
         chunks = [d for d in result if d.metadata.get("embeddingType") == "chunk"]
         assert len(chunks) > 0
+        # BoK should still get the fallback content from the failed document
+        mock_bok_graph.ainvoke.assert_awaited()
 
     @pytest.mark.asyncio
     async def test_bok_failure_caught(self, monkeypatch):
